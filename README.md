@@ -1,2 +1,2 @@
 # python-misc
-Python Code NOT Associated with Specific Projects
+This repository contains Python code NOT associated with specific projects.
