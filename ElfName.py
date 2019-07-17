@@ -1,4 +1,4 @@
-gi#This program determines your elf name based on the initial of the user's name as well as their birth month.
+#This program determines your elf name based on the initial of the user's name as well as their birth month.
 FirstInitial = {"a": "Perky", "b": "Nipper", "c": "Bubbles", "d": "Happy", "e": "Squeezy", "f": "Sunny", "g": "Merry",
                 "h": "Tootsie", "i": "Kringle", "j": "Puddin", "k": "Cookie", "l": "Tinker", "m": "Twinkle",
                 "n": "Buddy", "o": "Elfie", "p": "Jingle", "q": "Snowflake", "r": "Jolly", "s": "Elvis",
