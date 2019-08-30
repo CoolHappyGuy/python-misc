@@ -1,6 +1,7 @@
 from functools import reduce # For reduce function
 import hashlib  as hl  # Hashing (sha256, 64 bit method)
 import json  # To convert dictionary to string
+from collections import OrderedDict # To order dictionary entries
 # Initializing our (empty) blockchain list
 MINING_REWARD = 10 # Global Constant (Reward given for person who mines a new block)
 # Our starting block for the blockchain with initialized values
@@ -28,7 +29,7 @@ def hash_block(block):
 
         See lecture 102 for full explanation of the below method chain
         """
-    return hl.sha256(json.dumps(block).encode()).hexdigest()
+    return hl.sha256(json.dumps(block, sort_keys=True).encode()).hexdigest()
 
 def valid_proof(transactions, last_hash, proof):
     guess = (str(transactions) + str(last_hash) + str(proof)).encode()
@@ -68,11 +69,13 @@ def add_transaction(recipient, sender=owner, amount=1.0):
         :recipient: The recipient of the coins.
         :amount: The amount of coins sent with the transaction (default = 1.0)
     """
-    transaction = {
-        'sender': sender,
-        'recipient': recipient,
-        'amount': amount
-    }
+    # transaction = {
+    #     'sender': sender,
+    #     'recipient': recipient,
+    #     'amount': amount
+    # }
+    # Using OrderedDict, each dictionary entry is a tuple representing key-value pairs.
+    transaction = OrderedDict([('sender', sender),('recipient', recipient),('amount', amount)])
     if verify_transaction(transaction):
         open_transactions.append(transaction)
         participants.add(sender)
@@ -90,11 +93,12 @@ def mine_block():
     # Calculate proof of work before reward transaction
     proof = proof_of_work()
     # Miners should be rewarded, so let's create a reward transaction
-    reward_transaction = {
-        'sender': 'MINING',
-        'recipient': owner,
-        'amount':  MINING_REWARD
-    }
+    # reward_transaction = {
+    #     'sender': 'MINING',
+    #     'recipient': owner,
+    #     'amount':  MINING_REWARD
+    # }
+    reward_transaction = OrderedDict([('sender', 'MINING'), ('recipient', owner), ('amount', MINING_REWARD)])
     # Copy transaction instead of manipulating the original open_transactions list
     # This ensures that if for some reason the mining should fail, we don't have the reward transaction stored in the
     # open transactions
