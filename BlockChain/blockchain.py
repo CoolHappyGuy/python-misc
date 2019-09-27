@@ -1,9 +1,10 @@
-from collections import OrderedDict  # To order dictionary entries
+
 from functools import reduce  # For reduce function
 import json
 
 from hash_util import hash_string_256, hash_block
 from block import Block
+from transaction import Transaction
 
 # Initializing our (empty) blockchain list
 MINING_REWARD = 10 # Global Constant (Reward given for person who mines a new block)
@@ -26,9 +27,8 @@ def load_data():
             blockchain = json.loads(file_content[0][:-1])
             updated_blockchain = []
             for block in blockchain:
-                converted_tx = [OrderedDict(
-                        [('sender', tx['sender']), ('recipient', tx['recipient']), ('amount', tx['amount'])]) for tx in
-                        block['transactions']]
+                converted_tx = [Transaction(tx['sender'], tx['recipient'], tx['amount']) for tx in block['transactions']]
+
                 # Update block based on Block class
                 updated_block = Block(block['index'], block['previous_hash'], converted_tx, block['proof'],
                                       block['timestamp'])
@@ -37,8 +37,7 @@ def load_data():
             open_transactions = json.loads(file_content[1])
             updated_transactions = []
             for tx in open_transactions:
-                updated_transaction = OrderedDict(
-                    [('sender', tx['sender']), ('recipient', tx['recipient']), ('amount', tx['amount'])])
+                updated_transaction = Transaction(tx['sender'], tx['recipient'], tx['amount'])
                 updated_transactions.append(updated_transaction)
             open_transactions = updated_transactions
     except (IOError, IndexError):
@@ -56,16 +55,20 @@ load_data()
 def save_data():
     try:
         with open('blockchain.txt', mode='w') as f:
-            saveable_chain = [block.__dict__ for block in blockchain]
+            saveable_chain = [block.__dict__ for block in [Block(block_el.index, block_el.previous_hash,
+                                                          [tx.__dict__ for tx in block_el.transactions],
+                                                           block_el.proof, block_el.timestamp)
+                                                           for block_el in blockchain]]
             f.write(json.dumps(saveable_chain))
             f.write('\n')
-            f.write(json.dumps(open_transactions))
+            saveable_tx = [tx.__dict__ for tx in open_transactions]
+            f.write(json.dumps(saveable_tx))
     except IOError:
         print('Saving Failed!')
 
 
 def valid_proof(transactions, last_hash, proof):
-    guess = (str(transactions) + str(last_hash) + str(proof)).encode()
+    guess = (str([tx.to_ordered_dict() for tx in transactions]) + str(last_hash) + str(proof)).encode()
     guess_hash = hash_string_256(guess)
     print(guess_hash)
     return guess_hash[0:2] == '00'
@@ -87,8 +90,8 @@ def get_last_blockchain_value():
 
 
 def verify_transaction(transaction):
-    sender_balance = get_balance(transaction['sender'])
-    return sender_balance >= transaction['amount']
+    sender_balance = get_balance(transaction.sender)
+    return sender_balance >= transaction.amount
 
 
 # This function accepts two arguments.
@@ -108,11 +111,9 @@ def add_transaction(recipient, sender=owner, amount=1.0):
     #     'amount': amount
     # }
     # Using OrderedDict, each dictionary entry is a tuple representing key-value pairs.
-    transaction = OrderedDict([('sender', sender),('recipient', recipient), ('amount', amount)])
+    transaction = Transaction(sender, recipient, amount)
     if verify_transaction(transaction):
         open_transactions.append(transaction)
-        participants.add(sender)
-        participants.add(recipient)
         save_data()
         return True
     return False
@@ -132,7 +133,7 @@ def mine_block():
     #     'recipient': owner,
     #     'amount':  MINING_REWARD
     # }
-    reward_transaction = OrderedDict([('sender', 'MINING'), ('recipient', owner), ('amount', MINING_REWARD)])
+    reward_transaction = Transaction('MINING', owner, MINING_REWARD)
     # Copy transaction instead of manipulating the original open_transactions list
     # This ensures that if for some reason the mining should fail, we don't have the reward transaction stored in the
     # open transactions
@@ -152,19 +153,19 @@ def get_balance(participant):
     # Fetch a list of all sent coin amounts for the given person
     #  (empty lists are returned if the person was NOT the sender)
     # This fetches sent amounts of transactions that were already included in blocks of the blockchain
-    tx_sender = [[tx['amount'] for tx in block.transactions
-                  if tx['sender'] == participant] for block in blockchain]
+    tx_sender = [[tx.amount for tx in block.transactions
+                  if tx.sender == participant] for block in blockchain]
     # Fetch a list of all sent coin amounts for the given person
     #  (empty lists are returned if the person was NOT the sender)
     # This fetches sent amounts of open transactions (to avoid double spending)
-    open_tx_sender = [tx['amount'] for tx in open_transactions if tx['sender'] == participant]
+    open_tx_sender = [tx.amount for tx in open_transactions if tx.sender == participant]
     tx_sender.append(open_tx_sender)
     amount_sent = reduce(lambda tx_sum, tx_amt: tx_sum + sum(tx_amt) if len(tx_amt) > 0 else tx_sum + 0,
                                     tx_sender, 0)
     # This fetches received coin amounts of transactions that were already included in blocks of the blockchain
     # We ignore open transactions here because you shouldn't be able to spend coins before the transaction was confirmed
     #  + included in a bloc
-    tx_recipient = [[tx['amount'] for tx in block.transactions if tx['recipient'] == participant]
+    tx_recipient = [[tx.amount for tx in block.transactions if tx.recipient == participant]
                     for block in blockchain]
     amount_received = reduce(lambda tx_sum, tx_amt: tx_sum + sum(tx_amt) if len(tx_amt) > 0 else tx_sum + 0,
                                         tx_recipient, 0)
@@ -211,7 +212,8 @@ def verify_chain():
 
 
 def verify_transactions():
-    return all([verify_transaction(tx) for tx in open_transactions])
+    """Verifies all open transactions"""
+    return all(verify_transaction(tx) for tx in open_transactions)
 
 
 waiting_for_input = True
