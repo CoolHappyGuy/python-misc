@@ -1,6 +1,8 @@
 from collections import OrderedDict  # To order dictionary entries
+from printable import Printable  # Make screen output user-friendly
 
-class Transaction:
+
+class Transaction(Printable):
     def __init__(self, sender, recipient, amount):
         self.sender = sender
         self.recipient = recipient
