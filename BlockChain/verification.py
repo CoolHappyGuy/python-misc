@@ -10,7 +10,6 @@ class Verification:
         print(guess_hash)
         return guess_hash[0:2] == '00'
 
-
     def verify_chain(self, blockchain):
         """ Verify the current blockchain and return True if it's valid, False otherwise."""
         for (index, block) in enumerate(blockchain):
@@ -30,7 +29,7 @@ class Verification:
         Arguments:
             :transaction: The transaction that should be verified.
         """
-        sender_balance = get_balance(transaction.sender)
+        sender_balance = get_balance()
         return sender_balance >= transaction.amount
 
 
