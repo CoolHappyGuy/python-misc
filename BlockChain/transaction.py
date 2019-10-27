@@ -1,5 +1,5 @@
 from collections import OrderedDict  # To order dictionary entries
-from printable import Printable  # Make screen output user-friendly
+from utility.printable import Printable  # Make screen output user-friendly
 
 
 class Transaction(Printable):

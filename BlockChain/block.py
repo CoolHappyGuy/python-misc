@@ -1,5 +1,5 @@
 from time import time
-from printable import Printable  # Make screen output user-friendly
+from utility.printable import Printable  # Make screen output user-friendly
 
 
 class Block(Printable):
