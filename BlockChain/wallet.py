@@ -1,4 +1,6 @@
 from Crypto.PublicKey import RSA
+from Crypto.Signature import PKCS1_v1_5
+from Crypto.Hash import SHA256
 import Crypto.Random
 # Convert from binary to ascii (and vice versa)
 import binascii
@@ -38,6 +40,21 @@ class Wallet:
     def generate_keys(self):
         private_key = RSA.generate(1024, Crypto.Random.new().read)
         public_key = private_key.publickey()
+        # Turn binary format into string (hexlify)
         return (binascii.hexlify(private_key.exportKey(format='DER')).decode('ascii'),
                 binascii.hexlify(public_key.exportKey(format='DER')).decode('ascii'))
+
+    def sign_transaction(self, sender, recipient, amount):
+        # Turn string format into binary (unhexlify)
+        signer = PKCS1_v1_5.new(RSA.importKey(binascii.unhexlify(self.private_key)))
+        h = SHA256.new((str(sender) + str(recipient) + str(amount)).encode('utf8'))
+        signature = signer.sign(h)
+        return binascii.hexlify(signature).decode('ascii')
+
+    @staticmethod
+    def verify_transaction(transaction):
+        public_key = RSA.importKey(binascii.unhexlify(transaction.sender))
+        verifier = PKCS1_v1_5.new(public_key)
+        h = SHA256.new((str(transaction.sender) + str(transaction.recipient) + str(transaction.amount)).encode('utf8'))
+        return verifier.verify(h, binascii.unhexlify(transaction.signature))
 
